@@ -1311,20 +1311,25 @@
             window.open(targetUrl, '_blank'); 
         }
 
-        // GLOBAL CLICK HANDLER FOR ANY TELEGRAM LINK FIX IN WEBVIEW
+        // ROBUST GLOBAL CLICK HANDLER FOR TELEGRAM & EXTERNAL LINKS IN APP WEBVIEW
         document.addEventListener('click', function(e) {
             var target = e.target.closest('a');
             if (target && target.href) {
-                if (target.href.includes('t.me/') || target.href.startsWith('tg://')) {
+                var url = target.href;
+                if (url.includes('t.me/') || url.startsWith('tg://')) {
                     e.preventDefault();
-                    var cleanUrl = target.href;
+                    var cleanUrl = url;
                     if(cleanUrl.startsWith('tg://')) {
                         cleanUrl = cleanUrl.replace('tg://resolve?domain=', 'https://t.me/');
                     }
-                    window.open(cleanUrl, '_system') || window.open(cleanUrl, '_blank');
+                    try {
+                        window.location.href = cleanUrl;
+                    } catch(err) {
+                        window.open(cleanUrl, '_blank');
+                    }
                 }
             }
-        });
+        }, true);
 
         function processAndCalculateIncome(txList) {
             userAllTransactions = txList;
