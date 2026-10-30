@@ -359,18 +359,7 @@
             </div>
         </div>
 
-        <div style="background: #1e1b4b; text-align: center; padding: 4px 0; overflow: hidden; border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <script>
-              atOptions = {
-                'key' : '6192783b9ac79dbf5b0fc02f0cb77259',
-                'format' : 'iframe',
-                'height' : 50,
-                'width' : 320,
-                'params' : {}
-              };
-            </script>
-            <script src="https://bicea.org/22/6192783b9ac79dbf5b0fc02f0cb77259"></script>
-        </div>
+        <!-- বিজ্ঞাপন সম্পূর্ণ রিমুভ করা হয়েছে -->
 
         <div id="home-screen" class="screen active">
             <div class="top-hero-slider">
@@ -868,18 +857,7 @@
             <div class="close-btn" onclick="event.stopPropagation(); document.getElementById('floating-download-banner').classList.remove('show');">✕</div>
         </div>
 
-        <div style="background: #1e1b4b; text-align: center; padding: 4px 0; overflow: hidden; border-top: 1px solid rgba(255,255,255,0.05); z-index: 90;">
-            <script>
-              atOptions = {
-                'key' : 'e1746d5029ebd3ed1849e889480970e1',
-                'format' : 'iframe',
-                'height' : 60,
-                'width' : 468,
-                'params' : {}
-              };
-            </script>
-            <script src="https://bicea.org/22/e1746d5029ebd3ed1849e889480970e1"></script>
-        </div>
+        <!-- বিজ্ঞাপন সম্পূর্ণ রিমুভ করা হয়েছে -->
 
         <div class="bottom-nav">
             <div class="nav-item active" onclick="switchScreen('home-screen', this)"><i class="fa-solid fa-house"></i><span>Home</span></div>
@@ -1278,13 +1256,11 @@
             });
         }
 
-        // 100% WORKING APP-CREATOR24 TELEGRAM REDIRECT FIX (USES INTENT & FALLBACK)
         function openTelegramHelp() {
             let targetUrl = telegramHelpLink;
             if(targetUrl.startsWith('tg://')) {
                 targetUrl = targetUrl.replace('tg://resolve?domain=', 'https://t.me/');
             }
-            // AppCreator24 WebView বাইপাস করার আল্টিমেট পদ্ধতি
             var iframe = document.createElement("iframe");
             iframe.style.display = "none";
             iframe.src = targetUrl;
@@ -1295,7 +1271,6 @@
             }, 100);
         }
 
-        // GLOBAL CLICK OVERRIDE FOR APP WEBVIEW
         document.addEventListener('click', function(e) {
             var target = e.target.closest('a');
             if (target && target.href) {
