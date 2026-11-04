@@ -359,8 +359,6 @@
             </div>
         </div>
 
-        <!-- বিজ্ঞাপন সম্পূর্ণ রিমুভ করা হয়েছে -->
-
         <div id="home-screen" class="screen active">
             <div class="top-hero-slider">
                 <img id="main-banner-img" src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=500" alt="Dynamic TV Slider">
@@ -845,7 +843,7 @@
         </div>
 
         <div id="floating-download-banner" class="floating-download-banner" onclick="window.open('https://www.appcreator24.com/app4230101-rnla0m', '_blank')">
-            <div style="display: flex; align-items: center; gap: 9px; cursor: pointer; flex: 1;">
+            <div style="display: flex; align-items: center; gap: 99px; cursor: pointer; flex: 1;">
                 <div style="background: rgba(255,255,255,0.25); width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center;">
                     <i class="fa-solid fa-download" style="font-size: 14px;"></i>
                 </div>
@@ -856,8 +854,6 @@
             </div>
             <div class="close-btn" onclick="event.stopPropagation(); document.getElementById('floating-download-banner').classList.remove('show');">✕</div>
         </div>
-
-        <!-- বিজ্ঞাপন সম্পূর্ণ রিমুভ করা হয়েছে -->
 
         <div class="bottom-nav">
             <div class="nav-item active" onclick="switchScreen('home-screen', this)"><i class="fa-solid fa-house"></i><span>Home</span></div>
@@ -886,7 +882,7 @@
 
         let currentUserId = null;
         let currentUserData = null;
-        let telegramHelpLink = 'https://t.me';
+        let telegramHelpLink = 'https://t.me/Sksajid5364';
         let verifyFee = 100, minDeposit = 100, minWithdraw = 200;
         let selectedTaskForProof = null;
         let lastNotifTimestamp = 0;
@@ -968,7 +964,9 @@
                     if(data.banner) {
                         document.getElementById('main-banner-img').src = data.banner;
                     }
-                    if(data.telegram) telegramHelpLink = data.telegram;
+                    if(data.telegram) {
+                        telegramHelpLink = data.telegram.startsWith('tg://') ? data.telegram.replace('tg://resolve?domain=', 'https://t.me/') : data.telegram;
+                    }
                     if(data.bkashNumber) document.getElementById('bkash-num-text').innerText = data.bkashNumber;
                     if(data.nagadNumber) document.getElementById('nagad-num-text').innerText = data.nagadNumber;
                     if(data.verifyFee) { verifyFee = parseFloat(data.verifyFee); document.getElementById('verify-fee-text').innerText = '৳' + verifyFee; document.getElementById('verify-fee-modal').innerText = '৳' + verifyFee; }
@@ -1224,12 +1222,14 @@
             }
         }
 
+        // TELEGRAM LINK FIX FOR APP
         function openTelegramProofSubmission() {
             if(!currentUserId || !selectedTaskForProof) return;
             let tgLink = (selectedTaskForProof.telegramUrl && selectedTaskForProof.telegramUrl !== '#') ? selectedTaskForProof.telegramUrl : telegramHelpLink;
             
             if(tgLink.startsWith('tg://')) {
-                tgLink = tgLink.replace('tg://resolve?domain=', 'https://t.me/');
+                let domain = tgLink.includes('domain=') ? tgLink.split('domain=')[1] : '';
+                tgLink = domain ? "https://t.me/" + domain : "https://t.me/Sksajid5364";
             }
 
             const todayDateStr = new Date().toISOString().split('T')[0];
@@ -1256,21 +1256,17 @@
             });
         }
 
+        // TELEGRAM LINK FIX FOR APP
         function openTelegramHelp() {
-            let targetUrl = telegramHelpLink;
+            let targetUrl = telegramHelpLink || 'https://t.me/Sksajid5364';
             if(targetUrl.startsWith('tg://')) {
-                targetUrl = targetUrl.replace('tg://resolve?domain=', 'https://t.me/');
+                let domain = targetUrl.includes('domain=') ? targetUrl.split('domain=')[1] : '';
+                targetUrl = domain ? "https://t.me/" + domain : "https://t.me/Sksajid5364";
             }
-            var iframe = document.createElement("iframe");
-            iframe.style.display = "none";
-            iframe.src = targetUrl;
-            document.body.appendChild(iframe);
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-                window.location.href = targetUrl;
-            }, 100);
+            window.open(targetUrl, '_blank');
         }
 
+        // GLOBAL CLICK LISTENER FOR ALL TELEGRAM LINKS
         document.addEventListener('click', function(e) {
             var target = e.target.closest('a');
             if (target && target.href) {
@@ -1279,16 +1275,10 @@
                     e.preventDefault();
                     var cleanUrl = url;
                     if(cleanUrl.startsWith('tg://')) {
-                        cleanUrl = cleanUrl.replace('tg://resolve?domain=', 'https://t.me/');
+                        let domain = cleanUrl.includes('domain=') ? cleanUrl.split('domain=')[1] : '';
+                        cleanUrl = domain ? "https://t.me/" + domain : "https://t.me/Sksajid5364";
                     }
-                    var iframe = document.createElement("iframe");
-                    iframe.style.display = "none";
-                    iframe.src = cleanUrl;
-                    document.body.appendChild(iframe);
-                    setTimeout(() => {
-                        document.body.removeChild(iframe);
-                        window.location.href = cleanUrl;
-                    }, 100);
+                    window.open(cleanUrl, '_blank');
                 }
             }
         }, true);
