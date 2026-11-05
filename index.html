@@ -242,6 +242,16 @@
         @keyframes bounceDot {
             to { transform: translateY(-5px); opacity: 0.4; }
         }
+
+        .google-signin-btn {
+            width: 100%; margin-top: 14px; padding: 11px 14px; border-radius: 12px;
+            border: 1px solid #dadce0; background: #ffffff; color: #3c4043;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            font-size: 13px; font-weight: 700; cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+        }
+        .google-signin-btn img { width: 19px; height: 19px; }
+        .google-signin-btn:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
@@ -324,6 +334,10 @@
                     <div class="input-group"><label style="color:white;">রেফার কোড (ঐচ্ছিক)</label><input type="text" id="reg-ref" placeholder="যেমন: EARN1234"></div>
                     <button class="btn-3d-blue" id="btn-reg-submit" style="margin-top: 10px;" onclick="handleRegister()">অ্যাকাউন্ট খুলুন</button>
                 </div>
+                <button type="button" class="google-signin-btn" id="btn-google-signin" onclick="handleGoogleSignIn()">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                    <span>Google দিয়ে অ্যাকাউন্ট খুলুন / লগইন করুন</span>
+                </button>
             </div>
         </div>
 
@@ -836,10 +850,10 @@
                 <div class="card-3d" style="text-align: center; padding: 25px 15px;">
                     <i class="fa-solid fa-list-check" style="font-size: 45px; color: var(--theme-purple); margin-bottom: 12px;"></i>
                     <h3 id="proof-task-title" style="font-size:15px; margin-bottom:8px; color:var(--theme-purple);">Task Title</h3>
-                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:20px;">১নং বাটনে ক্লিক করে কাজ করুন এবং ২নং বাটনে ক্লিক করে এডমিনের টেলিগ্রামে প্রুফ দিন।</p>
+                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:20px;">১নং বাটনে ক্লিক করে কাজ করুন এবং ২নং বাটনে ক্লিক করে প্রুফ সাবমিট করুন।</p>
                     
                     <button class="btn-3d-blue" style="background:#0284c7; margin-bottom:12px;" onclick="openTaskLinkDirect()">🔗 ১. কাজ করুন (টাস্ক লিংক)</button>
-                    <button class="btn-3d-blue" style="background:#229ED9;" onclick="openTelegramProofSubmission()">✈️ ২. টেলিগ্রামে প্রুফ জমা দিন</button>
+                    <button class="btn-3d-blue" style="background:#229ED9;" onclick="openTelegramProofSubmission()">২. প্রুফ সাবমিট</button>
                 </div>
             </div>
         </div>
@@ -968,7 +982,7 @@
                     if(data.banner) {
                         document.getElementById('main-banner-img').src = data.banner;
                     }
-                    if(data.telegram) telegramHelpLink = data.telegram;
+                    if(data.telegram) telegramHelpLink = normalizeTelegramUrl(data.telegram);
                     if(data.bkashNumber) document.getElementById('bkash-num-text').innerText = data.bkashNumber;
                     if(data.nagadNumber) document.getElementById('nagad-num-text').innerText = data.nagadNumber;
                     if(data.verifyFee) { verifyFee = parseFloat(data.verifyFee); document.getElementById('verify-fee-text').innerText = '৳' + verifyFee; document.getElementById('verify-fee-modal').innerText = '৳' + verifyFee; }
@@ -1210,7 +1224,7 @@
                     showToast("⚠️ আপনি আজ এই কাজটি একবার করেছেন! কাজ পেন্ডিং আছে।", true);
                     return;
                 }
-                selectedTaskForProof = { id: taskId, title: title, reward: reward, url: url, telegramUrl: telegramUrl };
+                selectedTaskForProof = { id: taskId, title: title, reward: reward, url: url, telegramUrl: normalizeTelegramUrl(telegramUrl || telegramHelpLink) };
                 document.getElementById('proof-task-title').innerText = title + " (রিওয়ার্ড: ৳" + reward + ")";
                 openOverlay('proof-submit-overlay');
             });
@@ -1224,32 +1238,33 @@
             }
         }
 
-        // Convert Telegram deep links (tg:// and tg:) to normal HTTPS links.
-        // Android WebView cannot load the custom tg: URL scheme directly.
+        // Always convert Telegram custom schemes to HTTPS before WebView navigation.
         function normalizeTelegramUrl(rawUrl) {
             let url = String(rawUrl || '').trim();
-            if (!url) return 'https://t.me/';
+            if (!url || url === '#') return 'https://t.me/';
 
-            url = url.replace(/^tg:\/\/?resolve\?domain=/i, 'https://t.me/');
-            url = url.replace(/^tg:resolve\?domain=/i, 'https://t.me/');
+            // Handle tg:resolve, tg:/resolve and tg://resolve formats.
+            let match = url.match(/^tg:\/*resolve\?domain=(.+)$/i);
+            if (match) return 'https://t.me/' + match[1].split('&')[0];
+
+            // Handle Telegram invite links.
+            match = url.match(/^tg:\/*join\?invite=(.+)$/i);
+            if (match) return 'https://t.me/+' + match[1].split('&')[0];
+
             url = url.replace(/^http:\/\/t\.me\//i, 'https://t.me/');
-
-            // Convert Telegram invite deep links to their HTTPS equivalent.
-            url = url.replace(/^tg:\/\/?join\?invite=/i, 'https://t.me/+');
-            if (/^t\.me\//i.test(url)) url = 'https://' + url;
+            if (/^(t\.me|telegram\.me)\//i.test(url)) url = 'https://' + url;
             return url;
         }
 
-        // Open only HTTPS Telegram URLs; never send tg: URLs to the WebView.
+        // Navigate the current WebView to HTTPS only. Android may hand the HTTPS
+        // Telegram app link to Telegram; otherwise Telegram's web page opens.
         function openTelegramExternal(rawUrl) {
             const safeUrl = normalizeTelegramUrl(rawUrl);
-            const link = document.createElement('a');
-            link.href = safeUrl;
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+            if (/^https:\/\/(t\.me|telegram\.me)\//i.test(safeUrl)) {
+                window.location.href = safeUrl;
+            } else {
+                window.location.href = 'https://t.me/';
+            }
         }
 
         function openTelegramProofSubmission() {
@@ -1294,9 +1309,9 @@
             if (!target || !target.href) return;
 
             const rawHref = target.getAttribute('href') || target.href;
-            if (/^(tg:|https?:\/\/)?(t\.me\/|telegram\.me\/)/i.test(rawHref) || /^tg:/i.test(rawHref)) {
+            if (/^tg:/i.test(rawHref) || /(^|\/\/)(t\.me|telegram\.me)\//i.test(rawHref)) {
                 e.preventDefault();
-                e.stopPropagation();
+                e.stopImmediatePropagation();
                 openTelegramExternal(rawHref);
             }
         }, true);
@@ -1637,6 +1652,27 @@
             });
         }
 
+        function handleGoogleSignIn() {
+            const btn = document.getElementById('btn-google-signin');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="btn-loading-dots"><span></span><span></span><span></span></div><span>Google দিয়ে সংযোগ হচ্ছে...</span>';
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            auth.signInWithPopup(provider).catch((error) => {
+                if (['auth/popup-blocked','auth/popup-closed-by-user','auth/operation-not-supported-in-this-environment'].includes(error.code)) {
+                    auth.signInWithRedirect(provider).catch((redirectError) => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"><span>Google দিয়ে অ্যাকাউন্ট খুলুন / লগইন করুন</span>';
+                        showToast("⚠️ Google লগইন চালু করা যায়নি: " + redirectError.message, true);
+                    });
+                    return;
+                }
+                btn.disabled = false;
+                btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"><span>Google দিয়ে অ্যাকাউন্ট খুলুন / লগইন করুন</span>';
+                showToast("⚠️ Google লগইন ব্যর্থ: " + error.message, true);
+            });
+        }
+
         function handleLogin() {
             const contact = document.getElementById('login-id').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
@@ -1705,30 +1741,44 @@
 
         auth.onAuthStateChanged((user) => {
             if (user) {
-                const emailPrefix = user.email.split('@')[0];
+                const emailPrefix = (user.email || user.uid).split('@')[0];
                 const userId = sanitizeKey(emailPrefix);
-                
-                db.ref('users/' + userId).once('value', snapshot => {
+                db.ref('users/' + userId).once('value').then(async (snapshot) => {
+                    if (!snapshot.exists() && user.providerData.some(p => p.providerId === 'google.com')) {
+                        const refInput = (document.getElementById('reg-ref')?.value || '').trim();
+                        const googleUserData = {
+                            name: user.displayName || 'Google User',
+                            contact: user.email || '',
+                            pass: '',
+                            balance: 0.00,
+                            isVerified: false,
+                            referCode: "EARN" + Math.floor(1000 + Math.random() * 9000),
+                            referredBy: refInput || null,
+                            totalEarn: 0.00,
+                            referEarn: 0.00
+                        };
+                        await db.ref('users/' + userId).set(googleUserData);
+                        snapshot = await db.ref('users/' + userId).once('value');
+                    }
                     if(snapshot.exists()) {
                         currentUserId = userId;
                         currentUserData = snapshot.val();
-                        
                         updateUserDataUI(currentUserData);
                         listenToUserData(userId);
-                        
                         document.getElementById('auth-screen').style.display = 'none';
                         hideAppLoader();
-                        
                         setTimeout(() => {
                             document.getElementById('floating-download-banner').classList.add('show');
                         }, 500);
-
                         triggerEntryPopup();
                     } else {
                         showAuthScreen();
                     }
-                }).catch(() => {
+                }).catch((error) => {
                     showAuthScreen();
+                    if (user.providerData.some(p => p.providerId === 'google.com')) {
+                        showToast("⚠️ Google অ্যাকাউন্টের তথ্য সংরক্ষণ হয়নি: " + error.message, true);
+                    }
                 });
             } else {
                 showAuthScreen();
