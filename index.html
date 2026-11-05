@@ -359,6 +359,8 @@
             </div>
         </div>
 
+        <!-- বিজ্ঞাপন সম্পূর্ণ রিমুভ করা হয়েছে -->
+
         <div id="home-screen" class="screen active">
             <div class="top-hero-slider">
                 <img id="main-banner-img" src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=500" alt="Dynamic TV Slider">
@@ -843,7 +845,7 @@
         </div>
 
         <div id="floating-download-banner" class="floating-download-banner" onclick="window.open('https://www.appcreator24.com/app4230101-rnla0m', '_blank')">
-            <div style="display: flex; align-items: center; gap: 99px; cursor: pointer; flex: 1;">
+            <div style="display: flex; align-items: center; gap: 9px; cursor: pointer; flex: 1;">
                 <div style="background: rgba(255,255,255,0.25); width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center;">
                     <i class="fa-solid fa-download" style="font-size: 14px;"></i>
                 </div>
@@ -854,6 +856,8 @@
             </div>
             <div class="close-btn" onclick="event.stopPropagation(); document.getElementById('floating-download-banner').classList.remove('show');">✕</div>
         </div>
+
+        <!-- বিজ্ঞাপন সম্পূর্ণ রিমুভ করা হয়েছে -->
 
         <div class="bottom-nav">
             <div class="nav-item active" onclick="switchScreen('home-screen', this)"><i class="fa-solid fa-house"></i><span>Home</span></div>
@@ -882,7 +886,7 @@
 
         let currentUserId = null;
         let currentUserData = null;
-        let telegramHelpLink = 'https://t.me/Sksajid5364';
+        let telegramHelpLink = 'https://t.me';
         let verifyFee = 100, minDeposit = 100, minWithdraw = 200;
         let selectedTaskForProof = null;
         let lastNotifTimestamp = 0;
@@ -964,9 +968,7 @@
                     if(data.banner) {
                         document.getElementById('main-banner-img').src = data.banner;
                     }
-                    if(data.telegram) {
-                        telegramHelpLink = data.telegram.startsWith('tg://') ? data.telegram.replace('tg://resolve?domain=', 'https://t.me/') : data.telegram;
-                    }
+                    if(data.telegram) telegramHelpLink = data.telegram;
                     if(data.bkashNumber) document.getElementById('bkash-num-text').innerText = data.bkashNumber;
                     if(data.nagadNumber) document.getElementById('nagad-num-text').innerText = data.nagadNumber;
                     if(data.verifyFee) { verifyFee = parseFloat(data.verifyFee); document.getElementById('verify-fee-text').innerText = '৳' + verifyFee; document.getElementById('verify-fee-modal').innerText = '৳' + verifyFee; }
@@ -1222,15 +1224,41 @@
             }
         }
 
-        // TELEGRAM LINK FIX FOR APP
+        // Convert Telegram deep links (tg:// and tg:) to normal HTTPS links.
+        // Android WebView cannot load the custom tg: URL scheme directly.
+        function normalizeTelegramUrl(rawUrl) {
+            let url = String(rawUrl || '').trim();
+            if (!url) return 'https://t.me/';
+
+            url = url.replace(/^tg:\/\/?resolve\?domain=/i, 'https://t.me/');
+            url = url.replace(/^tg:resolve\?domain=/i, 'https://t.me/');
+            url = url.replace(/^http:\/\/t\.me\//i, 'https://t.me/');
+
+            // Convert Telegram invite deep links to their HTTPS equivalent.
+            url = url.replace(/^tg:\/\/?join\?invite=/i, 'https://t.me/+');
+            if (/^t\.me\//i.test(url)) url = 'https://' + url;
+            return url;
+        }
+
+        // Open only HTTPS Telegram URLs; never send tg: URLs to the WebView.
+        function openTelegramExternal(rawUrl) {
+            const safeUrl = normalizeTelegramUrl(rawUrl);
+            const link = document.createElement('a');
+            link.href = safeUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
         function openTelegramProofSubmission() {
             if(!currentUserId || !selectedTaskForProof) return;
-            let tgLink = (selectedTaskForProof.telegramUrl && selectedTaskForProof.telegramUrl !== '#') ? selectedTaskForProof.telegramUrl : telegramHelpLink;
-            
-            if(tgLink.startsWith('tg://')) {
-                let domain = tgLink.includes('domain=') ? tgLink.split('domain=')[1] : '';
-                tgLink = domain ? "https://t.me/" + domain : "https://t.me/Sksajid5364";
-            }
+            const tgLink = normalizeTelegramUrl(
+                (selectedTaskForProof.telegramUrl && selectedTaskForProof.telegramUrl !== '#')
+                    ? selectedTaskForProof.telegramUrl
+                    : telegramHelpLink
+            );
 
             const todayDateStr = new Date().toISOString().split('T')[0];
 
@@ -1250,36 +1278,26 @@
             }, (err) => {
                 if(!err) {
                     closeOverlay('proof-submit-overlay');
-                    window.open(tgLink, '_blank');
+                    openTelegramExternal(tgLink);
                     showToast("✅ টেলিগ্রামে নেওয়া হচ্ছে! প্রুফ পাঠালে এডমিন চেক করবে।", false);
                 }
             });
         }
 
-        // TELEGRAM LINK FIX FOR APP
         function openTelegramHelp() {
-            let targetUrl = telegramHelpLink || 'https://t.me/Sksajid5364';
-            if(targetUrl.startsWith('tg://')) {
-                let domain = targetUrl.includes('domain=') ? targetUrl.split('domain=')[1] : '';
-                targetUrl = domain ? "https://t.me/" + domain : "https://t.me/Sksajid5364";
-            }
-            window.open(targetUrl, '_blank');
+            openTelegramExternal(telegramHelpLink);
         }
 
-        // GLOBAL CLICK LISTENER FOR ALL TELEGRAM LINKS
+        // Also handle Telegram links added dynamically by Firebase content.
         document.addEventListener('click', function(e) {
-            var target = e.target.closest('a');
-            if (target && target.href) {
-                var url = target.href;
-                if (url.includes('t.me/') || url.startsWith('tg://')) {
-                    e.preventDefault();
-                    var cleanUrl = url;
-                    if(cleanUrl.startsWith('tg://')) {
-                        let domain = cleanUrl.includes('domain=') ? cleanUrl.split('domain=')[1] : '';
-                        cleanUrl = domain ? "https://t.me/" + domain : "https://t.me/Sksajid5364";
-                    }
-                    window.open(cleanUrl, '_blank');
-                }
+            const target = e.target.closest('a');
+            if (!target || !target.href) return;
+
+            const rawHref = target.getAttribute('href') || target.href;
+            if (/^(tg:|https?:\/\/)?(t\.me\/|telegram\.me\/)/i.test(rawHref) || /^tg:/i.test(rawHref)) {
+                e.preventDefault();
+                e.stopPropagation();
+                openTelegramExternal(rawHref);
             }
         }, true);
 
