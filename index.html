@@ -901,6 +901,7 @@
         let currentUserId = null;
         let currentUserData = null;
         let telegramHelpLink = 'https://t.me';
+        let proofSubmissionLink = '';
         let verifyFee = 100, minDeposit = 100, minWithdraw = 200;
         let selectedTaskForProof = null;
         let lastNotifTimestamp = 0;
@@ -982,7 +983,8 @@
                     if(data.banner) {
                         document.getElementById('main-banner-img').src = data.banner;
                     }
-                    if(data.telegram) telegramHelpLink = normalizeTelegramUrl(data.telegram);
+                    if(data.supportLink || data.telegram) telegramHelpLink = normalizeTelegramUrl(data.supportLink || data.telegram);
+                    if(data.proofLink) proofSubmissionLink = normalizeTelegramUrl(data.proofLink);
                     if(data.bkashNumber) document.getElementById('bkash-num-text').innerText = data.bkashNumber;
                     if(data.nagadNumber) document.getElementById('nagad-num-text').innerText = data.nagadNumber;
                     if(data.verifyFee) { verifyFee = parseFloat(data.verifyFee); document.getElementById('verify-fee-text').innerText = '৳' + verifyFee; document.getElementById('verify-fee-modal').innerText = '৳' + verifyFee; }
@@ -1209,7 +1211,7 @@
                     const taskId = this.getAttribute('data-task-id');
                     const t = taskList[taskId];
                     if(t) {
-                        openProofSubmission(taskId, t.title, t.reward, t.taskUrl || '#', t.telegramUrl || telegramHelpLink);
+                        openProofSubmission(taskId, t.title, t.reward, t.taskUrl || '#', t.proofUrl || t.telegramUrl || proofSubmissionLink || telegramHelpLink);
                     }
                 });
             });
@@ -1224,7 +1226,7 @@
                     showToast("⚠️ আপনি আজ এই কাজটি একবার করেছেন! কাজ পেন্ডিং আছে।", true);
                     return;
                 }
-                selectedTaskForProof = { id: taskId, title: title, reward: reward, url: url, telegramUrl: normalizeTelegramUrl(telegramUrl || telegramHelpLink) };
+                selectedTaskForProof = { id: taskId, title: title, reward: reward, url: url, proofUrl: normalizeTelegramUrl(telegramUrl || proofSubmissionLink || telegramHelpLink) };
                 document.getElementById('proof-task-title').innerText = title + " (রিওয়ার্ড: ৳" + reward + ")";
                 openOverlay('proof-submit-overlay');
             });
@@ -1238,41 +1240,42 @@
             }
         }
 
-        // Always convert Telegram custom schemes to HTTPS before WebView navigation.
+        // Accept Telegram, Messenger, WhatsApp, website and other HTTP(S) links.
         function normalizeTelegramUrl(rawUrl) {
             let url = String(rawUrl || '').trim();
-            if (!url || url === '#') return 'https://t.me/';
+            if (!url || url === '#') return '';
 
-            // Handle tg:resolve, tg:/resolve and tg://resolve formats.
+            // Keep Telegram custom-link compatibility.
             let match = url.match(/^tg:\/*resolve\?domain=(.+)$/i);
             if (match) return 'https://t.me/' + match[1].split('&')[0];
 
-            // Handle Telegram invite links.
             match = url.match(/^tg:\/*join\?invite=(.+)$/i);
             if (match) return 'https://t.me/+' + match[1].split('&')[0];
 
-            url = url.replace(/^http:\/\/t\.me\//i, 'https://t.me/');
-            if (/^(t\.me|telegram\.me)\//i.test(url)) url = 'https://' + url;
+            if (/^\/\//.test(url)) return 'https:' + url;
+            if (/^https?:\/\//i.test(url)) return url;
+            if (/^(t\.me|telegram\.me)\//i.test(url)) return 'https://' + url;
+
+            // Accept a domain entered without https://.
+            if (/^[a-z0-9.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(url)) return 'https://' + url;
+
             return url;
         }
 
-        // Navigate the current WebView to HTTPS only. Android may hand the HTTPS
-        // Telegram app link to Telegram; otherwise Telegram's web page opens.
+        // Open the exact URL supplied by the admin, not a Telegram-only destination.
         function openTelegramExternal(rawUrl) {
             const safeUrl = normalizeTelegramUrl(rawUrl);
-            if (/^https:\/\/(t\.me|telegram\.me)\//i.test(safeUrl)) {
-                window.location.href = safeUrl;
-            } else {
-                window.location.href = 'https://t.me/';
+            if (!safeUrl) {
+                showToast("⚠️ কোনো লিংক সেট করা নেই!", true);
+                return;
             }
+            window.location.href = safeUrl;
         }
 
         function openTelegramProofSubmission() {
             if(!currentUserId || !selectedTaskForProof) return;
-            const tgLink = normalizeTelegramUrl(
-                (selectedTaskForProof.telegramUrl && selectedTaskForProof.telegramUrl !== '#')
-                    ? selectedTaskForProof.telegramUrl
-                    : telegramHelpLink
+            const proofLink = normalizeTelegramUrl(
+                selectedTaskForProof.proofUrl || proofSubmissionLink || telegramHelpLink
             );
 
             const todayDateStr = new Date().toISOString().split('T')[0];
@@ -1287,14 +1290,14 @@
                 userContact: currentUserData.contact,
                 taskTitle: selectedTaskForProof.title,
                 reward: selectedTaskForProof.reward,
-                proofDetails: "Telegram Proof Submitted",
+                proofDetails: "Proof Submission Link Opened",
                 status: 'Pending',
                 dateTime: getFormattedDateTime()
             }, (err) => {
                 if(!err) {
                     closeOverlay('proof-submit-overlay');
-                    openTelegramExternal(tgLink);
-                    showToast("✅ টেলিগ্রামে নেওয়া হচ্ছে! প্রুফ পাঠালে এডমিন চেক করবে।", false);
+                    openTelegramExternal(proofLink);
+                    showToast("✅ প্রুফ সাবমিট লিংক খোলা হচ্ছে!", false);
                 }
             });
         }
